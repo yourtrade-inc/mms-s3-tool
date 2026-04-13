@@ -115,7 +115,7 @@ def build_csv(receipts):
             writer.writerow([
                 processed_at,                          # processed_at
                 item.get('sku', ''),                   # sku_cd
-                '',                                    # stock_cd (not in API)
+                receipt.get('pos_shop_id'),                           # stock_cd = pos_shop_id (POS商店ID)
                 '',                                    # rank_cd (not in API)
                 good_ng,                               # good_ng: 01=良品/02=不良品
                 '',                                    # stock_qty (not in API)

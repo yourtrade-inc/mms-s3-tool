@@ -140,6 +140,50 @@ def build_csv(variants):
     return buf.getvalue()
 
 
+def build_csv_for_shop(shop_id, variants):
+    """Build CSV for a specific POS shop.
+
+    Per confirmed spec: `stock_cd` should be the POS shop id (`pos_shop_id`).
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+
+    writer.writerow([
+        'processed_at',
+        'sku_cd',
+        'stock_cd',
+        'rank_cd',
+        'good_ng',
+        'stock_qty',
+        'in_qty',
+        'out_qty',
+        'expiration_date',
+    ])
+
+    now_str = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+
+    for v in variants:
+        qc = v.get('qc')
+        if qc and str(qc).strip().lower() in ('ng', 'defective', '02', '2'):
+            good_ng = '02'
+        else:
+            good_ng = '01'
+
+        writer.writerow([
+            format_datetime(v.get('updated_at', '')) or now_str,
+            v.get('sku', ''),
+            shop_id,                 # stock_cd = pos_shop_id
+            '',
+            good_ng,
+            v.get('inventory_quantity', 0),
+            '',
+            '',
+            '',
+        ])
+
+    return buf.getvalue()
+
+
 def upload_to_s3(csv_content):
     """Upload CSV to S3 with timestamped key."""
     now = datetime.now()
@@ -169,16 +213,17 @@ if __name__ == '__main__':
     shops = fetch_pos_shops()
     print(f"Found {len(shops)} shop(s): {[s['name'] for s in shops]}")
 
-    all_variants = []
+    all_csv = []
     for shop in shops:
         shop_id = shop['id']
         print(f"\n=== Fetching product variants for shop {shop_id} ({shop['name']}) ===")
         variants = fetch_all_product_variants(shop_id)
         print(f"  Total variants: {len(variants)}")
-        all_variants.extend(variants)
+        all_csv.append(build_csv_for_shop(shop_id, variants))
 
     print(f"\n=== Building CSV (在庫実績) ===")
-    csv_content = build_csv(all_variants)
+    header, *parts = ''.join(all_csv).splitlines(True)
+    csv_content = header + ''.join(parts)
     row_count = csv_content.count('\n') - 1  # minus header
     print(f"CSV rows: {row_count}")
 
