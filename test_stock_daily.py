@@ -204,6 +204,15 @@ def upload_to_s3(csv_content):
         ContentType='text/csv',
     )
     print(f"  Uploaded to s3://{S3_BUCKET}/{s3_key}")
+
+    done_key = f"{s3_key}.done"
+    s3.put_object(
+        Bucket=S3_BUCKET,
+        Key=done_key,
+        Body=b'',
+        ContentType='text/plain',
+    )
+    print(f"  Uploaded done marker to s3://{S3_BUCKET}/{done_key}")
     return s3_key
 
 
